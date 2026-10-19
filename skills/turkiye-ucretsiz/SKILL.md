@@ -16,7 +16,7 @@ description: Bu skill'lerin şablonlarına sabit yazılmış ayarları açıklar
 | EC2 tipi | `t3.micro` | `aws-ec2-site` `main.tf` | Frankfurt'ta Free Tier uygun tip; şablondaki x86 AMI ile uyumlu |
 | EC2 disk | 8 GB gp3 | `aws-ec2-site` `main.tf` | Free Tier'ın 30 GB sınırının altında |
 | Ağ | Default VPC, NAT Gateway yok | `aws-ec2-site` `main.tf` | NAT Gateway saatlik ücretlidir |
-| Supabase | Central EU (Frankfurt) | Proje açılırken panelde | Supabase'in Türkiye ya da Orta Doğu bölgesi yok; sonradan değiştirilemez |
+| Supabase | Central EU (Frankfurt) | Proje açılırken panelde | Supabase'in Türkiye ya da Orta Doğu bölgesi yok; sonradan değiştirilemez. Free planda da seçilebilir; kapasite yüzünden geçici kapalıysa Zurich |
 | Netlify | Ayar yok | — | Statik dosyalar küresel CDN'den verilir |
 
 Kullanıcıya bu seçimleri sadece sorarsa anlat. Hangi skill çalışıyorsa onun içinde sessizce uygulanırlar.
