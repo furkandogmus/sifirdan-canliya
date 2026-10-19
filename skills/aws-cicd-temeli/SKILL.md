@@ -30,23 +30,32 @@ aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn'
 
 Çıktıda `token.actions.githubusercontent.com` varsa `create_oidc_provider=false` (hesap başına bir tane olabilir). EC2 rotası kullanılacaksa `enable_ec2=true`.
 
+GitHub'ın bu repo için gönderdiği OIDC kimlik önekini al. Yeni repolar ID'li biçim kullanır (`repo:<sahip>@<id>/<repo>@<id>`); eski biçimi beklemek `Not authorized to perform sts:AssumeRoleWithWebIdentity` hatası verir:
+
+```bash
+PFX=$(gh api repos/<sahip>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix)
+echo "$PFX"     # boşsa eski biçim kullanılır, -var satırını çıkar
+```
+
 ```bash
 cd infra/bootstrap
 terraform init
 terraform plan -out tfplan \
   -var project=<proje> \
   -var github_repo=<sahip>/<repo> \
+  -var "github_sub_prefix=$PFX" \
   -var enable_ec2=<true|false> \
   -var create_oidc_provider=<true|false>
 ```
 
-Planı özetle ve onay al, sonra `terraform apply tfplan`.
+Silme planında da aynı `-var` değerlerini kullan.
+
+Plan özetinde `0 to destroy` ise sormadan `terraform apply tfplan` çalıştır ve eklenen kaynak sayısını bildir. Silme ya da değiştirme varsa dur, listeyi göster, onay iste.
 
 ## 2. GitHub değişkenleri
 
 ```bash
 gh variable set PROJECT --body "<proje>"
-gh variable set AWS_REGION --body "$(terraform output -raw region)"
 gh variable set TF_STATE_BUCKET --body "$(terraform output -raw state_bucket)"
 gh variable set AWS_PLAN_ROLE_ARN --body "$(terraform output -raw plan_role_arn)"
 gh variable set AWS_DEPLOY_ROLE_ARN --body "$(terraform output -raw deploy_role_arn)"
@@ -57,11 +66,11 @@ Hepsi değişken, hiçbiri gizli değil. Secret gerekmez.
 
 ## Bitti sayılır
 
-`gh variable list` beş değişkeni gösteriyor. Sıradaki adım: `aws-statik-site` ya da `aws-ec2-site`.
+`gh variable list` dört değişkeni gösteriyor. Sıradaki adım: `aws-statik-site` ya da `aws-ec2-site`.
 
 ## Güvenlik notları
 
-- Deploy rolünün güven koşulu `repo:<sahip>/<repo>:ref:refs/heads/main`. Workflow'a `environment:` eklenirse GitHub'ın gönderdiği kimlik `repo:<sahip>/<repo>:environment:<ad>` olur ve rol alınamaz; o durumda koşul güncellenir.
+- Deploy rolünün güven koşulu `<önek>:ref:refs/heads/main`. ID'li önek, repo silinip aynı adla yeniden açılırsa eski rolün yeni repoya güvenmemesini sağlar: yeniden açılan repo için bootstrap yeni önekle tekrar apply edilir. Workflow'a `environment:` eklenirse gelen kimlik `<önek>:environment:<ad>` olur ve rol alınamaz; o durumda koşul güncellenir.
 - Plan rolü PR'larda çalışır; salt okunur olduğu için PR'daki kod bir şey değiştiremez. Bu yüzden plan `-lock=false` ile çalışır, kilidi sadece apply alır.
 - `enable_ec2=true` deploy rolüne `<proje>-web-*` adlı IAM rollerini yönetme izni verir. Demo için yeterli; gerçek projede bu rollere bir permissions boundary eklenmeli.
 

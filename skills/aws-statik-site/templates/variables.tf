@@ -8,9 +8,3 @@ variable "project" {
     error_message = "project küçük harf, rakam ve tire içermeli, 3-30 karakter."
   }
 }
-
-variable "region" {
-  description = "S3 bucket'ın region'ı. CloudFront globaldir."
-  type        = string
-  default     = "eu-central-1"
-}

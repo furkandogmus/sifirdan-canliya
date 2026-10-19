@@ -9,11 +9,6 @@ variable "project" {
   }
 }
 
-variable "region" {
-  type    = string
-  default = "eu-central-1"
-}
-
 variable "github_repo" {
   description = "Deploy edecek repo, sahip/ad biçiminde (örn. ornek-kullanici/sitem)."
   type        = string
@@ -22,6 +17,12 @@ variable "github_repo" {
     condition     = can(regex("^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$", var.github_repo))
     error_message = "github_repo sahip/ad biçiminde olmalı."
   }
+}
+
+variable "github_sub_prefix" {
+  description = "OIDC sub öneki. Yeni repolar ID'li biçim kullanır: gh api repos/<sahip>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix"
+  type        = string
+  default     = null
 }
 
 variable "enable_ec2" {

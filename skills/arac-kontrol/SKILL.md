@@ -15,7 +15,7 @@ for t in gh aws netlify supabase terraform; do
 done
 ```
 
-Eksik olanı kullanıcının işletim sistemine göre kurdur. Kurulum komutunu göster, onay al:
+Eksik olanı kullanıcının işletim sistemine göre kur ve neyi kurduğunu bildir:
 
 | Araç | macOS (Homebrew) | Diğer |
 |---|---|---|
@@ -25,7 +25,11 @@ Eksik olanı kullanıcının işletim sistemine göre kurdur. Kurulum komutunu g
 | supabase | `brew install supabase/tap/supabase` | https://supabase.com/docs/guides/cli |
 | terraform | `brew install hashicorp/tap/terraform` | https://developer.hashicorp.com/terraform/install |
 
-Terraform **1.10 veya üstü** olmalı (S3 state kilidi `use_lockfile` için). Homebrew'un çekirdek deposundaki `terraform` formülü 1.5.7'de kaldı: sürüm 1.10'dan eskiyse `brew uninstall terraform && brew install hashicorp/tap/terraform`. OpenTofu 1.10+ da çalışır (`tofu` komutuyla).
+Terraform **1.10 veya üstü** olmalı (S3 state kilidi `use_lockfile` için). Homebrew'un çekirdek deposundaki `terraform` formülü 1.5.7'de kaldı. Sürüm eskiyse:
+- `tfenv` kuruluysa (`command -v tfenv`): `tfenv install 1.10.5` ve repo köküne `echo 1.10.5 > .terraform-version`. tfenv bu dosyayı görünce o klasörde doğru sürümü kendisi seçer; arkadaşların makinesinde de aynı sürüm çalışır.
+- Değilse: `brew uninstall terraform && brew install hashicorp/tap/terraform`.
+
+OpenTofu 1.10+ da çalışır (`tofu` komutuyla).
 
 ## 2. Giriş yapılmış mı?
 

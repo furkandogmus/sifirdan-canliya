@@ -26,7 +26,7 @@ Site adı Netlify genelinde benzersiz olmalı: `<repo-adı>-<4 rastgele harf>` �
 netlify deploy --prod --dir site --no-build --site-name <site-adı> --json | jq '{site_id, url}'
 ```
 
-Bu komut siteyi açar, klasöre bağlar ve yayınlar; `site_id` sonraki adımda lazım. Birden fazla Netlify takımı varsa `--team <slug>` ister: `netlify status --json | jq '.account.Teams'` takımları listeler, kullanıcıya hangisi olduğunu sor. Site ID'si sonradan da `.netlify/state.json` içindeki `siteId` alanında durur.
+Bu komut siteyi açar, klasöre bağlar ve yayınlar; `site_id` sonraki adımda lazım. `Failed to create site: 404` alırsan ya da birden fazla takım varsa `--team <slug>` ekle. Slug takım adından farklı olabilir: `netlify api listAccountsForUser | jq -r '.[] | "\(.name)  \(.slug)"'` ikisini birlikte listeler. Site ID'si sonradan da `.netlify/state.json` içindeki `siteId` alanında durur.
 
 ## 4. GitHub'a bağla
 
@@ -38,11 +38,20 @@ Değişken ve secret (`github-cicd` adım 2):
 gh variable set NETLIFY_SITE_ID --body "<site-id>"
 ```
 
-`NETLIFY_AUTH_TOKEN` kullanıcının kendi tokenıdır; senin görmemen gerekir. Kullanıcıdan şunu yapmasını iste:
-1. Netlify › User settings › Applications › Personal access tokens › New access token (süreli olsun).
-2. Kendi terminalinde: `gh secret set NETLIFY_AUTH_TOKEN` ve tokenı istemde yapıştırsın.
+`NETLIFY_AUTH_TOKEN` kullanıcının tek elle yaptığı adım; Netlify API'si token üretmez ve değeri senin görmemen gerekir. Netlify CLI'ın makinedeki oturum token'ını okuyup kullanma: süresiz ve tüm hesaba erişir.
 
-Sonra `gh secret list` ile adın göründüğünü doğrula.
+Token sayfasını aç ve kullanıcıya tek komut bırak:
+
+```bash
+open "https://app.netlify.com/user/applications#personal-access-tokens" 2>/dev/null \
+  || xdg-open "https://app.netlify.com/user/applications#personal-access-tokens"
+```
+
+Kullanıcıya şunu söyle, başka bir şey değil:
+1. Açılan sayfada **New access token** › bir ad ve son kullanma tarihi (30 gün) › Generate › kopyala.
+2. Terminalde `gh secret set NETLIFY_AUTH_TOKEN --repo <sahip>/<repo>` çalıştır, istemde yapıştır.
+
+Bitti dediğinde `gh secret list` ile adın göründüğünü kontrol et. Liste değerin dolu olduğunu göstermez: `gh workflow run netlify.yml --ref main` ile bir çalışma başlat, "Ayarları kontrol et" adımı geçmeli. "secret'ı yok" hatası secret'ın boş kaydedildiğini gösterir (istemde yapıştırmadan Enter); kullanıcıdan tekrar girmesini iste. Token'ın süresi dolunca workflow `Unauthorized` verir; aynı iki adım tekrarlanır.
 
 ## 5. Akışı dene
 
@@ -54,7 +63,7 @@ gh pr create --fill
 gh run watch
 ```
 
-PR'a "Önizleme: https://pr-<n>--<site-adı>.netlify.app" yorumu düşer. Kullanıcı önizlemeyi beğenince:
+PR'a "Netlify önizleme: https://pr-<n>--<site-adı>.netlify.app" yorumu düşer. Linki kullanıcıya ver; kontroller yeşilse merge et (kullanıcı önizlemeye bakmak istediğini söylediyse onu bekle):
 
 ```bash
 gh pr merge --squash --delete-branch

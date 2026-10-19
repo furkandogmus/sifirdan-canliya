@@ -2,10 +2,24 @@ name: aws-s3
 
 on:
   pull_request:
-    paths: ["infra/s3-site/**", "site/**", ".github/workflows/aws-s3.yml"]
+    paths-ignore:
+      - "*.md"
+      - "infra/bootstrap/**"
+      - "infra/ec2-site/**"
+      - ".github/workflows/aws-ec2.yml"
+      - ".github/workflows/netlify.yml"
+      - ".github/workflows/supabase.yml"
+      - "supabase/**"
   push:
     branches: [main]
-    paths: ["infra/s3-site/**", "site/**", ".github/workflows/aws-s3.yml"]
+    paths-ignore:
+      - "*.md"
+      - "infra/bootstrap/**"
+      - "infra/ec2-site/**"
+      - ".github/workflows/aws-ec2.yml"
+      - ".github/workflows/netlify.yml"
+      - ".github/workflows/supabase.yml"
+      - "supabase/**"
   workflow_dispatch:
 
 permissions:
@@ -18,10 +32,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_REGION: eu-central-1
   TF_VAR_project: ${{ vars.PROJECT }}
-  TF_VAR_region: ${{ vars.AWS_REGION }}
   TF_IN_AUTOMATION: "true"
+  # Yayınlanacak klasör. Build varsa çıktısı (Astro/Vite: dist).
+  PUBLISH_DIR: site
 
 defaults:
   run:
@@ -43,11 +58,11 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: eu-central-1
 
       - run: terraform fmt -check -recursive
 
-      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=${{ vars.AWS_REGION }}"
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=eu-central-1"
 
       - run: terraform validate
 
@@ -86,6 +101,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build (package.json varsa)
+        working-directory: ${{ github.workspace }}
+        run: if [ -f package.json ]; then npm ci && npm run build; fi
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.10.5"
@@ -94,9 +117,9 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: eu-central-1
 
-      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=${{ vars.AWS_REGION }}"
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=eu-central-1"
 
       - run: terraform apply -input=false -auto-approve
 
@@ -104,6 +127,6 @@ jobs:
         run: |
           BUCKET=$(terraform output -raw bucket)
           DIST=$(terraform output -raw distribution_id)
-          aws s3 sync "$GITHUB_WORKSPACE/site/" "s3://$BUCKET" --delete
+          aws s3 sync "$GITHUB_WORKSPACE/$PUBLISH_DIR/" "s3://$BUCKET" --delete
           aws cloudfront create-invalidation --distribution-id "$DIST" --paths "/*" > /dev/null
           echo "### Yayında: $(terraform output -raw url)" >> "$GITHUB_STEP_SUMMARY"

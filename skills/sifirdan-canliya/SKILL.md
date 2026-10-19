@@ -26,7 +26,8 @@ Rotalar birleşebilir: aynı repo ve aynı `site/` klasörü hem Netlify'a hem A
 
 ## Her rotada geçerli
 
+- Şablonlar Türkiye'deki ziyaretçiler ve ücretsiz kullanım için sabitlendi (Frankfurt, CloudFront `PriceClass_100`, `t3.micro`); neden ve ücretsizlik koşulları `turkiye-ucretsiz`.
 - Her bulut kaynağı `project=<proje-adı>` etiketi taşır; varsayılan proje adı `demo`.
-- Kalıcı bir şey kuran ya da silen her komuttan önce komutu göster ve onay bekle.
+- Kullanıcı ayrıntıları bilmek zorunda değil: kurulum adımlarını (repo, PR açma, merge, silme içermeyen Terraform planının apply'ı) sormadan yürüt, her adımı tek satırla bildir. Durup onay iste sadece şunlarda: bir şey silinecekse (planda `destroy` / `replace`, `sites:delete`, `repo delete`) ve ücretli bir kaynak ilk kez kurulacaksa (EC2).
 - Token, şifre ve anahtarları kullanıcı kendi terminalinde girer (`gh secret set …`); sohbete yapıştırılmaz.
 - Bitirirken kullanıcıya ver: canlı URL, repo URL'i, oluşturulan kaynakların listesi, silme yolu.

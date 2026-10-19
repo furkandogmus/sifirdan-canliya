@@ -17,7 +17,12 @@ concurrency:
 env:
   NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
   NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+  # Yayınlanacak klasör. Build varsa çıktısı (Astro/Vite: dist).
   PUBLISH_DIR: site
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   deploy:
@@ -29,9 +34,15 @@ jobs:
         with:
           node-version: 22
 
+      - name: Ayarları kontrol et
+        run: |
+          [ -n "$NETLIFY_AUTH_TOKEN" ] || { echo "::error::NETLIFY_AUTH_TOKEN secret'ı yok. Netlify › User settings › Applications › Personal access tokens, sonra: gh secret set NETLIFY_AUTH_TOKEN"; exit 1; }
+          [ -n "$NETLIFY_SITE_ID" ] || { echo "::error::NETLIFY_SITE_ID değişkeni yok: gh variable set NETLIFY_SITE_ID --body <site-id>"; exit 1; }
+
       - run: npm install -g netlify-cli@27
 
-      # Build gerekiyorsa: npm ci && npm run build, PUBLISH_DIR'i build çıktısı yapın (dist/ gibi).
+      - name: Build (package.json varsa)
+        run: if [ -f package.json ]; then npm ci && npm run build; fi
 
       - name: Önizleme (PR)
         if: github.event_name == 'pull_request'
@@ -41,7 +52,8 @@ jobs:
           URL=$(netlify deploy --dir "$PUBLISH_DIR" --no-build \
             --alias "pr-${{ github.event.pull_request.number }}" \
             --message "PR #${{ github.event.pull_request.number }} ${{ github.sha }}" \
-            --json | jq -r '.deploy_url')
+            --json | jq -r '.deploy_url // empty')
+          [ -n "$URL" ] || { echo "::error::Netlify önizleme URL'i dönmedi"; exit 1; }
           # Kendi işaretli yorumunu günceller; diğer workflow'ların yorumlarına dokunmaz.
           PR=${{ github.event.pull_request.number }}
           BODY=$(printf '<!-- netlify-preview -->\nNetlify önizleme: %s' "$URL")
@@ -57,5 +69,6 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
           URL=$(netlify deploy --prod --dir "$PUBLISH_DIR" --no-build \
-            --message "${{ github.sha }}" --json | jq -r '.url')
+            --message "${{ github.sha }}" --json | jq -r '.url // empty')
+          [ -n "$URL" ] || { echo "::error::Netlify production URL'i dönmedi"; exit 1; }
           echo "### Yayında: $URL" >> "$GITHUB_STEP_SUMMARY"

@@ -47,6 +47,20 @@ Ek olarak `supabase-veritabani` (veritabanı), bitişte `bulut-temizlik`. Rotala
 | `aws-ec2-site` | EC2 + nginx, içerik S3'ten, önde CloudFront, SSH yerine SSM; aynı CD akışı |
 | `supabase-veritabani` | Migration + RLS, tarayıcıdan supabase-js, migration'lar CI'dan |
 | `bulut-temizlik` | Açılan her şeyin envanteri ve onaylı silinmesi |
+| `turkiye-ucretsiz` | Şablonlara sabit yazılmış Türkiye ayarları ve her parçanın ücretsiz kalma koşulu |
+
+## Türkiye için, ücretsiz
+
+Ayarlar şablonlara sabit yazılı, seçim yapmanız gerekmez:
+
+| Ayar | Değer |
+|---|---|
+| AWS region | `eu-central-1` (Frankfurt) |
+| CloudFront | `PriceClass_100`: Türkiye uç noktaları dahil, en ucuz sınıf |
+| EC2 | `t3.micro`, 8 GB gp3, NAT Gateway yok (Free Tier) |
+| Supabase | Central EU (Frankfurt) |
+
+Süresiz ücretsiz rota: Netlify ya da S3 + CloudFront (+ Supabase). Ayrıntı: `turkiye-ucretsiz`.
 
 ## AWS mimarisi
 
@@ -71,8 +85,9 @@ Kalıcı AWS anahtarı ya da SSH anahtarı hiçbir yerde tutulmaz.
 ## Güvenlik notları
 
 - Token ve şifreleri ajana yapıştırmayın; skill'ler bunları `gh secret set …` ile kendi terminalinizde girmenizi ister.
-- Ajan kalıcı bir şey kuran ya da silen her komuttan önce onay ister. Ajanın otomatik onay modunu açmadan önce düşünün; denemeler için ayrı ve boş bir AWS hesabı kullanın.
-- EC2 rotası birkaç dolar/ay tutar (instance, disk, public IPv4). Demo bitince `bulut-temizlik` çalıştırın.
+- Ajan kurulumu baştan sona kendisi yürütür: repo, PR, merge ve silme içermeyen Terraform planlarının apply'ı. Durup sadece iki durumda sorar: bir şey silinecekse ve ücretli bir kaynak (EC2) ilk kez kurulacaksa. Denemeler için ayrı ve boş bir AWS hesabı kullanın.
+- Ajanınız her komut için izin soruyorsa, bu repoyla çalışırken `gh`, `git`, `terraform`, `netlify`, `aws` komutlarına izin verebilirsiniz (Claude Code'da `/permissions`).
+- EC2 rotası Free plan kredisinden ya da 12 aylık Free Tier'dan düşer; süresiz ücretsiz değildir. Demo bitince `bulut-temizlik` çalıştırın.
 
 ## Lisans
 

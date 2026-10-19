@@ -43,7 +43,7 @@ aws budgets describe-budgets --account-id "$ACCOUNT_ID" \
   --query 'Budgets[].BudgetName' --output text
 ```
 
-Yoksa kullanıcıdan alarm e-postasını iste, komutu göster, onay alınca çalıştır. 1 USD'lik bütçe, %1'i (1 sent) aşınca e-posta atar:
+Yoksa kullanıcıdan alarm e-postasını iste ve kur. 1 USD'lik bütçe, %1'i (1 sent) aşınca e-posta atar:
 
 ```bash
 aws budgets create-budget --account-id "$ACCOUNT_ID" \

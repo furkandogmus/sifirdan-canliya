@@ -93,6 +93,7 @@ resource "aws_vpc_security_group_egress_rule" "all" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
+
 # --- Instance ---
 
 data "aws_ssm_parameter" "al2023" {
@@ -101,7 +102,7 @@ data "aws_ssm_parameter" "al2023" {
 
 resource "aws_instance" "web" {
   ami                         = data.aws_ssm_parameter.al2023.value
-  instance_type               = var.instance_type
+  instance_type               = "t3.micro" # Free Tier uygun, Frankfurt'ta var
   iam_instance_profile        = aws_iam_instance_profile.instance.name
   vpc_security_group_ids      = [aws_security_group.web.id]
   associate_public_ip_address = true
@@ -139,7 +140,8 @@ resource "aws_cloudfront_distribution" "web" {
   enabled             = true
   comment             = "${var.project} EC2 site"
   default_root_object = "index.html"
-  price_class         = "PriceClass_100"
+  # En ucuz sınıf; "Europe, Israel, and Türkiye" grubunu kapsar, İstanbul uç noktaları dahil.
+  price_class = "PriceClass_100"
 
   origin {
     origin_id   = "ec2"

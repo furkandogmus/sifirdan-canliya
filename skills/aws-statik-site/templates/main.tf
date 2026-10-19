@@ -26,7 +26,8 @@ resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   comment             = "${var.project} statik site"
   default_root_object = "index.html"
-  price_class         = "PriceClass_100"
+  # En ucuz sınıf; "Europe, Israel, and Türkiye" grubunu kapsar, İstanbul uç noktaları dahil.
+  price_class = "PriceClass_100"
 
   origin {
     origin_id                = "s3"

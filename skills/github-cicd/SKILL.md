@@ -31,13 +31,13 @@ git commit -m "ilk sürüm"
 gh repo create <repo-adı> --public --source=. --push
 ```
 
-Repo adını ve görünürlüğünü kullanıcıya sor (varsayılan: klasör adı, public). Branch koruması private repolarda ücretsiz planda çalışmaz; private seçilirse adım 3'ü atla ve bunu söyle.
+Kullanıcı başka bir şey söylemediyse varsayılanları kullan (ad: klasör adı, görünürlük: public) ve seçtiğini bildir. Branch koruması private repolarda ücretsiz planda çalışmaz; private seçilirse adım 3'ü atla ve bunu söyle.
 
 ## 2. Secret mı, değişken mi?
 
 | Tür | Ne için | Komut |
 |---|---|---|
-| Değişken (`vars.X`) | Gizli olmayan: site ID, rol ARN'i, region, bucket adı | `gh variable set X --body "<değer>"` |
+| Değişken (`vars.X`) | Gizli olmayan: site ID, rol ARN'i, bucket adı | `gh variable set X --body "<değer>"` |
 | Secret (`secrets.X`) | Token, şifre | Kullanıcı kendi terminalinde: `gh secret set X` |
 
 Secret değerini asla sen yazma, sohbete yapıştırtma; `gh secret set` değeri istemde kullanıcıdan alır. Kontrol: `gh variable list`, `gh secret list` (değer göstermez).
@@ -84,7 +84,7 @@ gh run view <run-id> --log-failed
 
 | Hata | Sebep | Çözüm |
 |---|---|---|
-| `Could not assume role with OIDC` / `Not authorized to perform sts:AssumeRoleWithWebIdentity` | Rolün güven koşulu bu repo/dal ile eşleşmiyor ya da workflow'da `id-token: write` yok | `github_repo` değişkenini ve `permissions` bloğunu kontrol et; workflow'a `environment:` eklendiyse güven koşulu `environment:<ad>` olmalı |
+| `Could not assume role with OIDC` / `Not authorized to perform sts:AssumeRoleWithWebIdentity` | Rolün güven koşulu GitHub'ın gönderdiği `sub` ile eşleşmiyor ya da workflow'da `id-token: write` yok | `gh api repos/<sahip>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix` çıktısını rolün koşuluyla karşılaştır (`aws-cicd-temeli` › `github_sub_prefix`); `permissions` bloğuna bak; workflow'a `environment:` eklendiyse koşul `<önek>:environment:<ad>` olmalı |
 | `Unauthorized` (Netlify) | `NETLIFY_AUTH_TOKEN` yok ya da süresi dolmuş | Kullanıcı yeni token üretip `gh secret set` ile günceller |
 | `Resource not accessible by integration` | PR'a yorum yazma izni yok | Workflow'da `pull-requests: write` |
 | Fork'tan gelen PR'da secret boş | GitHub fork PR'larına secret vermez | Beklenen davranış; dal repo içinde açılmalı |

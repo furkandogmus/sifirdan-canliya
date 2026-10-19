@@ -2,7 +2,9 @@ data "aws_caller_identity" "current" {}
 
 locals {
   oidc_url = "https://token.actions.githubusercontent.com"
-  oidc_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
+  # Yeni repolarda sub "repo:<sahip>@<id>/<repo>@<id>:..." biçimindedir; eski biçim "repo:<sahip>/<repo>:...".
+  sub_prefix = coalesce(var.github_sub_prefix, "repo:${var.github_repo}")
+  oidc_arn   = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
 }
 
 # --- Terraform state ---
@@ -67,12 +69,12 @@ data "aws_iam_policy_document" "trust_plan" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:*"]
+      values   = ["${local.sub_prefix}:*"]
     }
   }
 }
 
-# Sadece main dalı. Workflow'a "environment:" eklenirse sub "repo:<repo>:environment:<ad>" olur ve bu koşul tutmaz.
+# Sadece main dalı. Workflow'a "environment:" eklenirse sub "<önek>:environment:<ad>" olur ve bu koşul tutmaz.
 data "aws_iam_policy_document" "trust_deploy" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -88,7 +90,7 @@ data "aws_iam_policy_document" "trust_deploy" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values   = ["${local.sub_prefix}:ref:refs/heads/main"]
     }
   }
 }

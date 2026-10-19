@@ -7,7 +7,7 @@ description: Statik bir siteyi AWS'de sunucusuz olarak S3 + CloudFront (private 
 
 Sunucu yok: dosyalar private bir S3 bucket'ında durur, CloudFront HTTPS ile dağıtır. En ucuz ve en az bakım isteyen AWS rotası. Sunucu üzerinde çalışan bir şey gerekiyorsa `aws-ec2-site`.
 
-Ön koşul: `aws-cicd-temeli` bitmiş (`gh variable list` beş değişkeni gösteriyor).
+Ön koşul: `aws-cicd-temeli` bitmiş (`gh variable list` dört değişkeni gösteriyor).
 
 ## Ne kurulur
 
@@ -28,7 +28,7 @@ gh pr create --fill
 gh pr checks --watch
 ```
 
-PR'daki "Terraform plan: S3 + CloudFront" yorumunu kullanıcıyla oku: `Plan: 5 to add, 0 to change, 0 to destroy` beklenir. Onaylarsa:
+PR'daki "Terraform plan: S3 + CloudFront" yorumunu oku (`gh pr view --comments`): `Plan: 5 to add, 0 to change, 0 to destroy` beklenir. Silme yoksa ve kontroller yeşilse sormadan merge et; silme varsa dur ve kullanıcıya göster.
 
 ```bash
 gh pr merge --squash --delete-branch
@@ -43,8 +43,8 @@ gh run watch
 
 ```bash
 cd infra/s3-site
-terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=<region>"
-terraform plan -var project=<proje> -var region=<region> -lock=false
+terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=eu-central-1"
+terraform plan -var project=<proje> -lock=false
 ```
 
 Lokalde `apply` çalıştırma; state'e tek yazar CI'dır.
@@ -68,8 +68,8 @@ CloudFront'un sertifikası **us-east-1**'deki ACM'den gelir; başka region'da a�
 
 ```bash
 cd infra/s3-site
-terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=<region>"
-terraform plan -destroy -out tfplan -var project=<proje> -var region=<region>
+terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=eu-central-1"
+terraform plan -destroy -out tfplan -var project=<proje>
 ```
 
 Listeyi göster, onay alınca `terraform apply tfplan`. Workflow dosyasını da kaldıran bir PR aç; yoksa sonraki merge siteyi yeniden kurar. Bootstrap'i silmek: `aws-cicd-temeli` › Silme.

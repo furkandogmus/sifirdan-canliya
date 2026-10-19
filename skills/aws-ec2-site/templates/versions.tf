@@ -11,7 +11,8 @@ terraform {
 }
 
 provider "aws" {
-  region = var.region
+  # Türkiye'deki ziyaretçiler için: Türkiye'ye yakın, varsayılan açık region. Statik içeriği CloudFront İstanbul'dan verir.
+  region = "eu-central-1"
 
   default_tags {
     tags = {

@@ -32,9 +32,14 @@ Bu skill'in `templates/` klasöründen kopyala:
 
 Hesapta default VPC yoksa (`aws ec2 describe-vpcs --filters Name=is-default,Values=true`) kullanıcıya söyle: `aws ec2 create-default-vpc` ile geri getirilebilir.
 
-## Maliyet
+## Ücretsiz mi?
 
-Free plan kredisinden düşer, kredi yoksa ücretlidir: `t3.micro` saatlik ücret, 8 GB gp3 disk ve public IPv4 adresi (saatlik). Ayda birkaç dolar eder. Kullanıcıya bunu söyle ve demo bitince silinmesini hatırlat.
+Şablondaki her şey Free Tier kapsamında seçildi: `t3.micro` (Frankfurt'ta Free Tier uygun tip), 8 GB gp3 disk, NAT Gateway yok, CloudFront `PriceClass_100`.
+
+- **Free plan (Temmuz 2025 sonrası açılan hesaplar):** instance, disk ve public IPv4 adresinin saatlik ücreti Free plan kredisinden düşer; kart ücretlenmez. Kredi ya da Free plan süresi bitince ücretli olur.
+- **Eski hesaplar (12 aylık Free Tier):** ayda 750 saat `t3.micro` ve 750 saat public IPv4 ücretsiz; tek instance tüm ay açık kalabilir.
+
+S3 rotasından farkı: S3 + CloudFront kredi bitse de pratikte sıfır tutar, EC2 tutmaz. Kullanıcıya bunu tek cümleyle söyle ve demo bitince silinmesini hatırlat.
 
 ## 1. İlk teslimat
 
@@ -47,7 +52,7 @@ gh pr create --fill
 gh pr checks --watch
 ```
 
-PR'daki "Terraform plan: EC2 + CloudFront" yorumunu kullanıcıyla oku (yaklaşık 11 kaynak eklenir, hiçbiri silinmez). Onaylarsa:
+PR'daki "Terraform plan: EC2 + CloudFront" yorumunu oku (`gh pr view --comments`; yaklaşık 11 kaynak eklenir, hiçbiri silinmez). İlk kurulumda kullanıcıya "Ücretsiz mi?" bölümündeki notu tek cümleyle söyle ve onayını al; sonraki PR'larda silme yoksa ve kontroller yeşilse sormadan merge et.
 
 ```bash
 gh pr merge --squash --delete-branch
@@ -80,12 +85,12 @@ aws ssm start-session --target "$(cd infra/ec2-site && terraform output -raw ins
 
 ```bash
 cd infra/ec2-site
-terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=<region>"
-terraform plan -destroy -out tfplan -var project=<proje> -var region=<region>
+terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=eu-central-1"
+terraform plan -destroy -out tfplan -var project=<proje>
 ```
 
 Listeyi göster, onay alınca `terraform apply tfplan`. Workflow dosyasını kaldıran bir PR aç. Bootstrap: `aws-cicd-temeli` › Silme.
 
 ## Kullanıcıya teslim
 
-Canlı URL, instance ID, sunucuya bağlanma komutu, maliyet notu ve silme sırası.
+Canlı URL, instance ID, sunucuya bağlanma komutu, ücretsizlik notu ve silme sırası.

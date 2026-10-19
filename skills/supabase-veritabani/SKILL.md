@@ -21,7 +21,7 @@ Tarayıcı koduna yalnızca publishable/anon anahtar ve proje URL'i girer.
 
 ## 1. Proje
 
-Kullanıcının mevcut bir projesi yoksa Supabase panelinden (New project) açmasını iste: ad, güçlü bir veritabanı şifresi (şifre yöneticisine kaydetsin), yakın region (Frankfurt). Ücretsiz planda bir hafta kullanılmayan proje duraklatılır; panelden tek tıkla açılır.
+Kullanıcının mevcut bir projesi yoksa Supabase panelinden (New project) açmasını iste: ad, güçlü bir veritabanı şifresi (şifre yöneticisine kaydetsin), region **Central EU (Frankfurt)** (Türkiye'deki ziyaretçiler için en uygunu; `turkiye-ucretsiz`). Ücretsiz planda bir hafta kullanılmayan proje duraklatılır; panelden tek tıkla açılır.
 
 Proje referansı panelde Project Settings › General › Project ID'dir.
 
