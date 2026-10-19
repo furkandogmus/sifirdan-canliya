@@ -42,8 +42,16 @@ jobs:
             --alias "pr-${{ github.event.pull_request.number }}" \
             --message "PR #${{ github.event.pull_request.number }} ${{ github.sha }}" \
             --json | jq -r '.deploy_url')
-          gh pr comment "${{ github.event.pull_request.number }}" \
-            --body "Önizleme: $URL" --edit-last --create-if-none
+          # Kendi işaretli yorumunu günceller; diğer workflow'ların yorumlarına dokunmaz.
+          PR=${{ github.event.pull_request.number }}
+          BODY=$(printf '<!-- netlify-preview -->\nNetlify önizleme: %s' "$URL")
+          ID=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '.[] | select(.body | startswith("<!-- netlify-preview -->")) | .id' | tail -1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$ID" -f body="$BODY" > /dev/null
+          else
+            gh pr comment "$PR" --body "$BODY"
+          fi
 
       - name: Production
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

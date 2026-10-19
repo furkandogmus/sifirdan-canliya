@@ -143,3 +143,53 @@ resource "aws_iam_role_policy" "deploy" {
   role   = aws_iam_role.deploy.id
   policy = data.aws_iam_policy_document.deploy.json
 }
+
+# --- EC2 rotası için ek izinler ---
+
+data "aws_iam_policy_document" "deploy_ec2" {
+  statement {
+    sid     = "WebBucket"
+    actions = ["s3:*"]
+    resources = [
+      "arn:aws:s3:::${var.project}-web-*",
+      "arn:aws:s3:::${var.project}-web-*/*",
+    ]
+  }
+
+  statement {
+    sid       = "Ec2"
+    actions   = ["ec2:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "Ssm"
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+      "ssm:SendCommand",
+      "ssm:GetCommandInvocation",
+      "ssm:ListCommands",
+      "ssm:ListCommandInvocations",
+      "ssm:DescribeInstanceInformation",
+    ]
+    resources = ["*"]
+  }
+
+  # Sadece <project>-web-* adlı rol ve profiller: deploy rolü kendi yetkisini büyütemez.
+  statement {
+    sid     = "InstanceRole"
+    actions = ["iam:*"]
+    resources = [
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project}-web-*",
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:instance-profile/${var.project}-web-*",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "deploy_ec2" {
+  count  = var.enable_ec2 ? 1 : 0
+  name   = "deploy-ec2"
+  role   = aws_iam_role.deploy.id
+  policy = data.aws_iam_policy_document.deploy_ec2.json
+}

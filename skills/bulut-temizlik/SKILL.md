@@ -11,7 +11,7 @@ description: Bir demo ya da proje için açılan her şeyi bulur ve kullanıcı 
 
 Proje adını sor (varsayılan `demo`). Her satırı kontrol et, bulduğunu tek tabloda topla: sağlayıcı, kaynak, nasıl silinir.
 
-**Terraform:** repoda `infra/site` ve `infra/bootstrap` var mı? Varsa silme Terraform'la yapılır (`aws-statik-site` › Silme), elle değil.
+**Terraform:** repoda `infra/s3-site`, `infra/ec2-site`, `infra/bootstrap` var mı? Varsa silme Terraform'la yapılır, elle değil.
 
 **AWS, tüm region'lar** (`project` etiketiyle):
 
@@ -39,10 +39,10 @@ Tabloyu göster ve kullanıcıdan satır satır seçmesini iste. Varsayılan: hi
 
 ## 3. Silme, bu sırayla
 
-1. **Terraform katmanları:** önce `infra/site`, sonra `infra/bootstrap` (`aws-statik-site` › Silme). Her biri `plan -destroy` → onay → `destroy`.
+1. **Terraform katmanları:** önce site katmanları (`aws-statik-site` › Silme, `aws-ec2-site` › Silme), en son `infra/bootstrap` (`aws-cicd-temeli` › Silme); site state'leri bootstrap'in bucket'ında durur. Her biri `plan -destroy` → onay → apply. Ardından `.github/workflows/aws-*.yml` dosyalarını kaldır; yoksa sonraki merge kaynakları yeniden kurmaya çalışır.
 2. **Netlify:** `netlify sites:delete <site-id> --force`
 3. **Supabase:** panelden Project Settings › General › Delete project (kullanıcı yapar).
-4. **GitHub repo:** silme izni gerekir: kullanıcı `! gh auth refresh -h github.com -s delete_repo` çalıştırsın, sonra `gh repo delete <sahip>/<repo> --yes`. Repo silinince Actions değişkenleri ve secret'ları da gider.
+4. **GitHub repo:** silme izni gerekir: kullanıcı `gh auth refresh -h github.com -s delete_repo` çalıştırsın, sonra `gh repo delete <sahip>/<repo> --yes`. Repo silinince Actions değişkenleri ve secret'ları da gider.
 5. **Terraform dışı kalan AWS kaynakları:** her biri kendi servisinin silme komutuyla; komutu göster, onay al, çalıştır.
 
 ## 4. Kontrol

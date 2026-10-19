@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+dnf install -y nginx
+systemctl enable --now nginx
+# İlk açılışta bucket boş olabilir; içerik CI'ın SSM komutuyla gelir.
+aws s3 sync "s3://${bucket}/" /usr/share/nginx/html/ --delete || true

@@ -38,11 +38,13 @@ Repo adını ve görünürlüğünü kullanıcıya sor (varsayılan: klasör ad�
 | Tür | Ne için | Komut |
 |---|---|---|
 | Değişken (`vars.X`) | Gizli olmayan: site ID, rol ARN'i, region, bucket adı | `gh variable set X --body "<değer>"` |
-| Secret (`secrets.X`) | Token, şifre | Kullanıcı kendi terminalinde: `! gh secret set X` |
+| Secret (`secrets.X`) | Token, şifre | Kullanıcı kendi terminalinde: `gh secret set X` |
 
 Secret değerini asla sen yazma, sohbete yapıştırtma; `gh secret set` değeri istemde kullanıcıdan alır. Kontrol: `gh variable list`, `gh secret list` (değer göstermez).
 
-AWS için secret gerekmez: workflow'lar OIDC ile geçici yetki alır (`aws-statik-site`).
+AWS için secret gerekmez: workflow'lar OIDC ile geçici yetki alır (`aws-cicd-temeli`).
+
+Etkileşimli komutları (`gh secret set`, `gh auth …`) kullanıcı kendi terminalinde çalıştırır; ajanın sohbetten komut çalıştırma kısayolu varsa (örn. Claude Code'da `!` öneki) o da olur.
 
 ## 3. main'i koru
 

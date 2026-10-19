@@ -40,7 +40,7 @@ gh variable set NETLIFY_SITE_ID --body "<site-id>"
 
 `NETLIFY_AUTH_TOKEN` kullanıcının kendi tokenıdır; senin görmemen gerekir. Kullanıcıdan şunu yapmasını iste:
 1. Netlify › User settings › Applications › Personal access tokens › New access token (süreli olsun).
-2. Kendi terminalinde: `! gh secret set NETLIFY_AUTH_TOKEN` ve tokenı istemde yapıştırsın.
+2. Kendi terminalinde: `gh secret set NETLIFY_AUTH_TOKEN` ve tokenı istemde yapıştırsın.
 
 Sonra `gh secret list` ile adın göründüğünü doğrula.
 

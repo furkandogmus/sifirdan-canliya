@@ -24,6 +24,12 @@ variable "github_repo" {
   }
 }
 
+variable "enable_ec2" {
+  description = "EC2 rotası kullanılacaksa true: deploy rolüne EC2, SSM ve <project>-web-* IAM izinleri eklenir."
+  type        = bool
+  default     = false
+}
+
 variable "create_oidc_provider" {
   description = "Hesapta GitHub OIDC provider zaten varsa false (hesap başına bir tane olabilir)."
   type        = bool

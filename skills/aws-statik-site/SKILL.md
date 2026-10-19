@@ -1,125 +1,79 @@
 ---
 name: aws-statik-site
-description: Statik bir siteyi AWS'de S3 + CloudFront (private bucket, OAC, HTTPS) üzerinde Terraform ile kurar ve GitHub Actions'la sürekli teslimata bağlar - PR'da terraform plan yorumu, main'e merge'de apply + içerik yükleme, anahtarsız OIDC. "AWS'de yayınla", "S3 + CloudFront", "terraform ci/cd" istendiğinde ya da CloudFront 403 / eski içerik sorununda kullan.
+description: Statik bir siteyi AWS'de sunucusuz olarak S3 + CloudFront (private bucket, OAC, HTTPS) üzerinde Terraform ile kurar ve GitHub Actions'a bağlar - PR'da plan yorumu, main'e merge'de apply + içerik yükleme. "S3", "CloudFront", "AWS'de statik site" istendiğinde ya da CloudFront 403 / eski içerik sorununda kullan.
 ---
 
-# AWS'de statik site: Terraform + GitHub Actions
+# AWS'de statik site: S3 + CloudFront
 
-Ön koşullar, sırayla: `arac-kontrol` (`aws`, `terraform` **1.10 veya üstü**, `gh`), `aws-hesap-guvenligi` (SSO profili ve bütçe alarmı), `github-cicd` adım 1 (repo push edilmiş). Bütçe alarmı yoksa önce onu kur.
+Sunucu yok: dosyalar private bir S3 bucket'ında durur, CloudFront HTTPS ile dağıtır. En ucuz ve en az bakım isteyen AWS rotası. Sunucu üzerinde çalışan bir şey gerekiyorsa `aws-ec2-site`.
 
-## Mimari
+Ön koşul: `aws-cicd-temeli` bitmiş (`gh variable list` beş değişkeni gösteriyor).
 
-İki Terraform katmanı, iki farklı sahip:
+## Ne kurulur
 
-| Katman | Ne kurar | Kim çalıştırır | State |
-|---|---|---|---|
-| `infra/bootstrap` | State bucket'ı, GitHub OIDC provider, `plan` (salt okunur) ve `deploy` rolleri | Kullanıcı, lokalde, **bir kere** | Lokal dosya |
-| `infra/site` | Private S3 bucket, CloudFront + OAC, bucket policy | GitHub Actions, her merge'de | S3 (bootstrap'in bucket'ı) |
-
-Akış: PR açılır → `plan` rolüyle `terraform plan`, sonucu PR'a yorum → merge → `deploy` rolüyle `terraform apply`, `site/` S3'e yüklenir, CloudFront önbelleği temizlenir. Kalıcı AWS anahtarı hiçbir yerde yok.
+Private S3 bucket (`<proje>-site-…`), CloudFront Origin Access Control (bucket'ı sadece CloudFront okur), CloudFront dağıtımı (HTTPS yönlendirme, `index.html` kök nesne, en ucuz fiyat sınıfı), bucket policy. Hepsi `project` ve `managed-by=terraform` etiketli.
 
 Bu skill'in `templates/` klasöründen kopyala:
-- `templates/bootstrap/*.tf` → `infra/bootstrap/`
-- `templates/site/*.tf` → `infra/site/`
-- `templates/workflows/aws.yml` → `.github/workflows/aws.yml`
+- `*.tf` → `infra/s3-site/`
+- `aws-s3.yml` → `.github/workflows/aws-s3.yml`
 
-`.gitignore`'da `.terraform/`, `*.tfstate*`, `tfplan` olduğunu kontrol et. Bootstrap state'i lokal kalır: kullanıcıya bu klasörü silmemesini söyle; silinirse bootstrap kaynakları Terraform'dan kopar ve elle silinir.
-
-## 1. Bootstrap (lokal, bir kere)
+## 1. İlk teslimat
 
 ```bash
-export AWS_PROFILE=demo
-aws sts get-caller-identity
-aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn' --output text
-```
-
-Çıktıda `token.actions.githubusercontent.com` varsa `create_oidc_provider=false` kullan (hesap başına bir tane olabilir).
-
-```bash
-cd infra/bootstrap
-terraform init
-terraform plan -out tfplan \
-  -var project=<proje> \
-  -var github_repo=<sahip>/<repo> \
-  -var create_oidc_provider=<true|false>
-```
-
-Planı özetle (beklenen: state bucket ve 3 ayarı, OIDC provider, 2 rol, 2 politika). Onay gelince `terraform apply tfplan`.
-
-## 2. GitHub değişkenleri
-
-```bash
-gh variable set PROJECT --body "<proje>"
-gh variable set AWS_REGION --body "$(terraform output -raw region)"
-gh variable set TF_STATE_BUCKET --body "$(terraform output -raw state_bucket)"
-gh variable set AWS_PLAN_ROLE_ARN --body "$(terraform output -raw plan_role_arn)"
-gh variable set AWS_DEPLOY_ROLE_ARN --body "$(terraform output -raw deploy_role_arn)"
-gh variable list
-```
-
-Hepsi değişken; gizli değiller. `github-cicd` adım 3 ile `main`'i koru.
-
-## 3. İlk teslimat
-
-`infra/site` ve workflow'u bir PR ile gönder:
-
-```bash
-git checkout -b aws-altyapi
-git add infra .github .gitignore site
+git checkout -b aws-s3
+git add infra/s3-site .github/workflows/aws-s3.yml site
 git commit -m "S3 + CloudFront altyapısı ve CD"
-git push -u origin aws-altyapi
+git push -u origin aws-s3
 gh pr create --fill
 gh pr checks --watch
 ```
 
-PR'daki plan yorumunu kullanıcıyla oku: `Plan: 5 to add, 0 to change, 0 to destroy` beklenir. Onaylarsa:
+PR'daki "Terraform plan: S3 + CloudFront" yorumunu kullanıcıyla oku: `Plan: 5 to add, 0 to change, 0 to destroy` beklenir. Onaylarsa:
 
 ```bash
 gh pr merge --squash --delete-branch
 gh run watch
 ```
 
-İlk apply'da CloudFront dağıtımı 5–10 dakika sürer. Workflow özetinde (`gh run view`) "Yayında: https://…cloudfront.net" satırı çıkar.
+İlk apply'da CloudFront 5–10 dakika sürer. Bittiğinde çalışma özetinde "Yayında: https://…cloudfront.net" çıkar (`gh run view`).
 
-## 4. Sonraki değişiklikler
+## 2. Sonraki değişiklikler
 
-- İçerik (`site/**`) ya da altyapı (`infra/site/**`) değişikliği → PR → plan yorumu → merge → otomatik yayın.
-- Lokalde plan görmek istenirse:
-  ```bash
-  cd infra/site
-  terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=<region>"
-  terraform plan -var project=<proje> -lock=false
-  ```
-  Lokalde `apply` çalıştırma; tek yazar CI'dır, iki yazar state'i karıştırır.
+`site/**` ya da `infra/s3-site/**` değişikliği → PR → plan yorumu → merge → otomatik yayın. Lokalde plan görmek için:
+
+```bash
+cd infra/s3-site
+terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=<region>"
+terraform plan -var project=<proje> -var region=<region> -lock=false
+```
+
+Lokalde `apply` çalıştırma; state'e tek yazar CI'dır.
 
 ## Sorun giderme
 
 | Belirti | Sebep | Çözüm |
 |---|---|---|
-| `Could not assume role` | Güven koşulu repo/dal ile tutmuyor | Bootstrap'te `github_repo` doğru mu; deploy rolü sadece `main`'e güvenir |
-| `AccessDenied` apply'da | Deploy rolü sadece `<proje>-site-*` bucket'larına yazabilir | `PROJECT` değişkeni bootstrap'teki `project` ile aynı mı |
-| `Unsupported argument use_lockfile` | Terraform 1.10'dan eski | `brew install hashicorp/tap/terraform` ya da workflow'daki sürüm |
-| 403 kök adreste | `site/index.html` yok | Dosya adını kontrol et |
+| `Could not assume role` | Güven koşulu tutmuyor | `aws-cicd-temeli` › Güvenlik notları |
+| `AccessDenied` apply'da | `PROJECT` değişkeni bootstrap'teki `project`'ten farklı | İkisini eşitle |
+| 403 kök adreste | `site/index.html` yok | Dosya adı |
 | 403 her yerde, ilk dakikalarda | Dağıtım hâlâ kuruluyor | `aws cloudfront get-distribution --id <id> --query Distribution.Status` → `Deployed` |
-| Eski içerik | Önbellek | Workflow invalidation yapıyor; tarayıcı önbelleği için gizli sekme |
+| Eski içerik | Tarayıcı önbelleği (CloudFront'unkini workflow temizler) | Gizli sekme |
 | Alt sayfa 403 | S3 dizin indeksi yapmaz | Bağlantılar `hakkinda.html` biçiminde |
 
 ## Özel domain (istenirse)
 
-CloudFront'un sertifikası **us-east-1**'deki ACM'den gelir; başka region'da açılan sertifika görünmez. `infra/site`'a ikinci bir `provider "aws" { alias = "us_east_1" region = "us-east-1" }`, `aws_acm_certificate` (DNS doğrulama), dağıtıma `aliases` ve `viewer_certificate { acm_certificate_arn = …, ssl_support_method = "sni-only" }` eklenir; deploy rolüne `acm:*` izni gerekir. DNS kaydı domain'in yönetildiği yerde CloudFront adresine CNAME/ALIAS olarak verilir.
+CloudFront'un sertifikası **us-east-1**'deki ACM'den gelir; başka region'da açılan sertifika görünmez. İkinci bir `provider "aws" { alias = "us_east_1" region = "us-east-1" }`, `aws_acm_certificate` (DNS doğrulama), dağıtıma `aliases` ve `viewer_certificate { acm_certificate_arn = …, ssl_support_method = "sni-only" }` gerekir; deploy rolüne `acm:*` izni eklenir.
 
 ## Silme
 
-Sıra önemli: önce site, sonra bootstrap (site state'i bootstrap'in bucket'ında durur).
-
 ```bash
-cd infra/site
+cd infra/s3-site
 terraform init -backend-config="bucket=<state-bucket>" -backend-config="region=<region>"
-terraform plan -destroy -var project=<proje>
+terraform plan -destroy -out tfplan -var project=<proje> -var region=<region>
 ```
 
-Listeyi göster, onay alınca `terraform destroy -var project=<proje>`. Sonra `cd ../bootstrap`, aynı şekilde `plan -destroy` → onay → `destroy` (aynı `-var` değerleriyle). Workflow'u da silmek için `.github/workflows/aws.yml`'i kaldıran bir PR aç; yoksa sonraki merge siteyi yeniden kurmaya çalışır ve rol olmadığı için kırmızı olur.
+Listeyi göster, onay alınca `terraform apply tfplan`. Workflow dosyasını da kaldıran bir PR aç; yoksa sonraki merge siteyi yeniden kurar. Bootstrap'i silmek: `aws-cicd-temeli` › Silme.
 
 ## Kullanıcıya teslim
 
-Canlı URL, repo URL'i, akışın tek cümlelik özeti (PR = plan, merge = yayın), GitHub değişkenlerinin listesi ve silme sırası.
+Canlı URL, akış özeti (PR = plan, merge = yayın) ve silme sırası.

@@ -1,7 +1,7 @@
 {
   "name": "sifirdan-canliya",
-  "description": "AI ajanıyla sıfırdan canlıya websitesi: CLI araçları, AWS hesap güvenliği, Netlify, S3 + CloudFront (Terraform), Supabase, GitHub Actions ve temizlik.",
-  "version": "0.1.0",
+  "description": "AI ajanıyla sıfırdan canlıya websitesi: CLI araçları, AWS hesap güvenliği, Netlify, S3 + CloudFront ve EC2 (Terraform), Supabase, GitHub Actions ve temizlik.",
+  "version": "0.2.0",
   "author": {
     "name": "furkandogmus",
     "url": "https://github.com/furkandogmus"

@@ -68,8 +68,8 @@ gh variable set SUPABASE_PROJECT_REF --body "<ref>"
 ```
 
 Secret'ları kullanıcı kendi terminalinde girer (`github-cicd` adım 2):
-- `! gh secret set SUPABASE_ACCESS_TOKEN`: Supabase › Account › Access Tokens'dan üretilir.
-- `! gh secret set SUPABASE_DB_PASSWORD`: 1. adımdaki şifre.
+- `gh secret set SUPABASE_ACCESS_TOKEN`: Supabase › Account › Access Tokens'dan üretilir.
+- `gh secret set SUPABASE_DB_PASSWORD`: 1. adımdaki şifre.
 
 Migration'ı lokalde `supabase db push` ile değil, PR + merge ile uygula: tek yazar CI olsun.
 

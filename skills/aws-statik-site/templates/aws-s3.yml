@@ -1,11 +1,11 @@
-name: aws
+name: aws-s3
 
 on:
   pull_request:
-    paths: ["infra/site/**", "site/**", ".github/workflows/aws.yml"]
+    paths: ["infra/s3-site/**", "site/**", ".github/workflows/aws-s3.yml"]
   push:
     branches: [main]
-    paths: ["infra/site/**", "site/**", ".github/workflows/aws.yml"]
+    paths: ["infra/s3-site/**", "site/**", ".github/workflows/aws-s3.yml"]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: aws-${{ github.ref }}
+  group: aws-s3-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -26,7 +26,7 @@ env:
 defaults:
   run:
     shell: bash
-    working-directory: infra/site
+    working-directory: infra/s3-site
 
 jobs:
   plan:
@@ -59,7 +59,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo "#### Terraform plan"
+            echo "<!-- aws-s3-plan -->"
+            echo "#### Terraform plan: S3 + CloudFront"
             grep -E '^(Plan:|No changes)' plan.txt || true
             echo
             echo "<details><summary>Ayrıntı</summary>"
@@ -69,7 +70,15 @@ jobs:
             echo '```'
             echo "</details>"
           } > comment.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md --edit-last --create-if-none
+          # Kendi işaretli yorumunu günceller; diğer workflow'ların yorumlarına dokunmaz.
+          PR=${{ github.event.pull_request.number }}
+          ID=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '.[] | select(.body | startswith("<!-- aws-s3-plan -->")) | .id' | tail -1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$ID" -F body=@comment.md > /dev/null
+          else
+            gh pr comment "$PR" --body-file comment.md
+          fi
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

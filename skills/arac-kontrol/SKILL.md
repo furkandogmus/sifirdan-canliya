@@ -36,7 +36,7 @@ Terraform **1.10 veya üstü** olmalı (S3 state kilidi `use_lockfile` için). H
 | netlify | `netlify status` | `netlify login` |
 | supabase | `supabase projects list` | `supabase login` |
 
-Giriş komutları tarayıcı açar ve etkileşimlidir: kullanıcıdan kendi terminalinde çalıştırmasını iste (Claude Code'da `! gh auth login` gibi). Token, şifre veya anahtarı sohbete yapıştırmasını isteme.
+Giriş komutları tarayıcı açar ve etkileşimlidir: kullanıcıdan kendi terminalinde çalıştırmasını iste (ajanın sohbetten komut çalıştırma kısayolu varsa o da olur, örn. Claude Code'da `! gh auth login`). Token, şifre veya anahtarı sohbete yapıştırmasını isteme.
 
 ## Bitti sayılır
 
