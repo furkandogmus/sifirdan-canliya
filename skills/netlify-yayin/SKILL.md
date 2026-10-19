@@ -9,6 +9,8 @@ Sonuç: Netlify sitesi **sadece GitHub'dan** yönetilir. Kod `main`'e girince pr
 
 Ön koşul: `gh` ve `netlify` girişli (`arac-kontrol`).
 
+Netlify'ın ücretsiz planı kredi tabanlıdır: ayda 300 kredi, her production deploy 15 kredi (yaklaşık 20 merge), bant genişliği de krediden düşer. Sık merge edilecek bir sınıf projesi ya da kalabalık bir ekip için `cloudflare-pages` rotasını öner; iki rota aynı repoda birlikte de çalışır.
+
 ## 1. Site
 
 - Klasörde site yoksa `site/` altına `index.html` ve `style.css` yaz: framework yok, build yok, mobil uyumlu, tek sayfa. Kullanıcının verdiği içeriği kullan; vermediyse yer tutucu metin koy ve bunu söyle.

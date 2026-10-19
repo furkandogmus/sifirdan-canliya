@@ -28,10 +28,11 @@ Başlamak için ajana "sifirdan-canliya skill'iyle başlayalım" deyin (Claude C
 | Rota | Ne zaman | Sıra |
 |---|---|---|
 | Netlify | En hızlı yol, sunucu yok | `arac-kontrol` → `github-cicd` → `netlify-yayin` |
+| Cloudflare Pages | Netlify'ın kredi sınırı istenmiyorsa | `arac-kontrol` → `github-cicd` → `cloudflare-pages` |
 | AWS S3 + CloudFront | AWS'de sunucusuz, en ucuz | `arac-kontrol` → `aws-hesap-guvenligi` → `github-cicd` → `aws-cicd-temeli` → `aws-statik-site` |
 | AWS EC2 | Sunucu öğrenmek ya da sunucuda bir şey çalıştırmak | `arac-kontrol` → `aws-hesap-guvenligi` → `github-cicd` → `aws-cicd-temeli` → `aws-ec2-site` |
 
-Ek olarak `supabase-veritabani` (veritabanı), bitişte `bulut-temizlik`. Rotalar birleşebilir: aynı `site/` klasörü hem Netlify'a hem AWS'ye yayınlanabilir.
+Ek olarak `iletisim-formu` (kodsuz form), `supabase-veritabani` (veritabanı), bitişte `bulut-temizlik`. Rotalar birleşebilir: aynı `site/` klasörü hem Netlify'a hem AWS'ye yayınlanabilir.
 
 ## Skill'ler
 
@@ -42,12 +43,39 @@ Ek olarak `supabase-veritabani` (veritabanı), bitişte `bulut-temizlik`. Rotala
 | `aws-hesap-guvenligi` | SSO profili, root kontrolü, sıfır harcama bütçe alarmı, harcama sorgusu |
 | `github-cicd` | Repo, `.gitignore`, Actions secret/değişkenleri, `main` koruması, kırmızı workflow teşhisi |
 | `netlify-yayin` | Netlify + GitHub Actions: PR'da önizleme, merge'de production |
+| `cloudflare-pages` | Cloudflare Pages + GitHub Actions: aynı akış, kredi sınırı yok |
+| `iletisim-formu` | Netlify Forms ile kodsuz form; S3/EC2/Cloudflare kopyalarında da çalışır; Resend + Turnstile yolu |
 | `aws-cicd-temeli` | Terraform state bucket'ı, GitHub OIDC, plan ve deploy rolleri (bir kere) |
 | `aws-statik-site` | Private S3 + CloudFront (OAC), PR'da plan yorumu, merge'de apply + yayın |
 | `aws-ec2-site` | EC2 + nginx, içerik S3'ten, önde CloudFront, SSH yerine SSM; aynı CD akışı |
 | `supabase-veritabani` | Migration + RLS, tarayıcıdan supabase-js, migration'lar CI'dan |
 | `bulut-temizlik` | Açılan her şeyin envanteri ve onaylı silinmesi |
 | `turkiye-ucretsiz` | Şablonlara sabit yazılmış Türkiye ayarları ve her parçanın ücretsiz kalma koşulu |
+
+## Resmî skill'leri de kurun
+
+Bu repo akışı yönetir: hangi adım, hangi sırayla, nerede durulacak. Servislerin ayrıntısını sağlayıcıların kendi skill'leri daha iyi bilir. Birlikte kurun:
+
+```bash
+npx skills add cloudflare/skills          # Workers, Pages, wrangler, Turnstile
+npx skills add supabase/agent-skills      # Supabase CLI, auth, RLS, Postgres
+npx skills add resend/resend-skills       # E-posta gönderme, react-email
+npx @netlify/skills@latest add --all      # Netlify deploy, functions, forms
+npx skills add vercel-labs/skills@find-skills   # ihtiyaç duyduğun yeni skill'i bul
+```
+
+## Ücretsiz eklentiler
+
+| Ne | Servis | Ücretsiz |
+|---|---|---|
+| İletişim formu | Netlify Forms | Gönderim sınırı yok (`iletisim-formu`) |
+| Spam koruması | Cloudflare Turnstile | Sınırsız doğrulama |
+| E-posta | Resend | Günde 100, ayda 3.000; kendi domain'i gerekir |
+| Ziyaretçi istatistiği | Cloudflare Web Analytics | Çerezsiz, ücretsiz |
+| Site ayakta mı? | UptimeRobot | 50 monitör, 5 dakikada bir |
+| Hata izleme | Sentry Developer | 5.000 hata |
+
+Kaçının: Vercel Hobby ticari kullanıma kapalı; Better Stack'in uptime monitörü kart ister.
 
 ## Türkiye için, ücretsiz
 
@@ -59,6 +87,7 @@ Ayarlar şablonlara sabit yazılı, seçim yapmanız gerekmez:
 | CloudFront | `PriceClass_100`: Türkiye uç noktaları dahil, en ucuz sınıf |
 | EC2 | `t3.micro`, 8 GB gp3, NAT Gateway yok (Free Tier) |
 | Supabase | Central EU (Frankfurt) |
+| Netlify | Ücretsiz plan kredi tabanlı: ayda 300 kredi, production deploy başına 15 |
 
 Süresiz ücretsiz rota: Netlify ya da S3 + CloudFront (+ Supabase). Ayrıntı: `turkiye-ucretsiz`.
 

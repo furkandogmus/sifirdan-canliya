@@ -29,6 +29,8 @@ CloudFront globaldir ve `us-east-1` altında listelenir. Etiketsiz açılmış k
 
 **Netlify:** `netlify sites:list --json | jq -r '.[] | "\(.id)  \(.name)  \(.ssl_url)"'`
 
+**Cloudflare Pages:** `npx -y wrangler@4 pages project list`
+
 **GitHub:** `gh repo list --limit 50`
 
 **Supabase:** `supabase projects list`
@@ -41,6 +43,7 @@ Tabloyu göster ve kullanıcıdan satır satır seçmesini iste. Varsayılan: hi
 
 1. **Terraform katmanları:** önce site katmanları (`aws-statik-site` › Silme, `aws-ec2-site` › Silme), en son `infra/bootstrap` (`aws-cicd-temeli` › Silme); site state'leri bootstrap'in bucket'ında durur. Her biri `plan -destroy` → onay → apply. Ardından `.github/workflows/aws-*.yml` dosyalarını kaldır; yoksa sonraki merge kaynakları yeniden kurmaya çalışır.
 2. **Netlify:** `netlify sites:delete <site-id> --force`
+   **Cloudflare Pages:** `npx -y wrangler@4 pages project delete <proje-adi>`; API token'ı Cloudflare panelinden iptal et.
 3. **Supabase:** panelden Project Settings › General › Delete project (kullanıcı yapar).
 4. **GitHub repo:** silme izni gerekir: kullanıcı `gh auth refresh -h github.com -s delete_repo` çalıştırsın, sonra `gh repo delete <sahip>/<repo> --yes`. Repo silinince Actions değişkenleri ve secret'ları da gider.
 5. **Terraform dışı kalan AWS kaynakları:** her biri kendi servisinin silme komutuyla; komutu göster, onay al, çalıştır.

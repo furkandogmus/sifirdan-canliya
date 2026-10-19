@@ -12,7 +12,7 @@
       "name": "sifirdan-canliya",
       "source": "./",
       "description": "Siteyi Netlify, AWS S3 + CloudFront ya da AWS EC2 üzerinde Terraform ve GitHub Actions ile otomatik yayınlar; AWS hesap güvenliği, Supabase ve temizlik skill'leri.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "author": { "name": "furkandogmus" },
       "keywords": ["aws", "netlify", "supabase", "terraform", "github-actions", "static-site", "turkish"]
     }

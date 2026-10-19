@@ -15,12 +15,13 @@ Her rotanın sonu aynı: site GitHub'dan yönetilir. Değişiklik PR'la gelir, P
 | Rota | Ne zaman | Sıra |
 |---|---|---|
 | Netlify | En hızlı yol, hiç sunucu yok | `arac-kontrol` → `github-cicd` → `netlify-yayin` |
+| Cloudflare Pages | Netlify'ın kredi sınırı istenmiyorsa | `arac-kontrol` → `github-cicd` → `cloudflare-pages` |
 | AWS S3 + CloudFront | AWS'de sunucusuz, en ucuz | `arac-kontrol` → `aws-hesap-guvenligi` → `github-cicd` → `aws-cicd-temeli` → `aws-statik-site` |
 | AWS EC2 | Sunucu öğrenmek, sunucuda bir şey çalıştırmak | `arac-kontrol` → `aws-hesap-guvenligi` → `github-cicd` → `aws-cicd-temeli` (`enable_ec2=true`) → `aws-ec2-site` |
 
 Rotalar birleşebilir: aynı repo ve aynı `site/` klasörü hem Netlify'a hem AWS'ye yayınlanabilir; her rota kendi workflow'unu getirir.
 
-**Dinamik parça:** herhangi bir rotanın üstüne `supabase-veritabani` (ziyaretçi defteri, form; migration'lar da CI'dan).
+**Dinamik parça:** iletişim formu için `iletisim-formu` (Netlify Forms, kodsuz); veritabanı için `supabase-veritabani` (ziyaretçi defteri; migration'lar da CI'dan).
 
 **Bitiş:** iş bir demoysa `bulut-temizlik`: envanter, onay, silme.
 
