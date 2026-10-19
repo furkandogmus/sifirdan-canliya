@@ -1,0 +1,100 @@
+name: aws
+
+on:
+  pull_request:
+    paths: ["infra/site/**", "site/**", ".github/workflows/aws.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/site/**", "site/**", ".github/workflows/aws.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: aws-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_VAR_project: ${{ vars.PROJECT }}
+  TF_VAR_region: ${{ vars.AWS_REGION }}
+  TF_IN_AUTOMATION: "true"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: infra/site
+
+jobs:
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - run: terraform fmt -check -recursive
+
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=${{ vars.AWS_REGION }}"
+
+      - run: terraform validate
+
+      # Plan rolü salt okunur, kilit dosyası yazamaz; kilidi sadece apply alır.
+      - run: terraform plan -input=false -no-color -lock=false | tee plan.txt
+
+      - name: Planı PR'a yaz
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "#### Terraform plan"
+            grep -E '^(Plan:|No changes)' plan.txt || true
+            echo
+            echo "<details><summary>Ayrıntı</summary>"
+            echo
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+            echo "</details>"
+          } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md --edit-last --create-if-none
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="region=${{ vars.AWS_REGION }}"
+
+      - run: terraform apply -input=false -auto-approve
+
+      - name: İçeriği yükle
+        run: |
+          BUCKET=$(terraform output -raw bucket)
+          DIST=$(terraform output -raw distribution_id)
+          aws s3 sync "$GITHUB_WORKSPACE/site/" "s3://$BUCKET" --delete
+          aws cloudfront create-invalidation --distribution-id "$DIST" --paths "/*" > /dev/null
+          echo "### Yayında: $(terraform output -raw url)" >> "$GITHUB_STEP_SUMMARY"

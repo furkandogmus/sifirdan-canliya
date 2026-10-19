@@ -1,0 +1,53 @@
+name: netlify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: netlify-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+  NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+  PUBLISH_DIR: site
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install -g netlify-cli@27
+
+      # Build gerekiyorsa: npm ci && npm run build, PUBLISH_DIR'i build çıktısı yapın (dist/ gibi).
+
+      - name: Önizleme (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL=$(netlify deploy --dir "$PUBLISH_DIR" --no-build \
+            --alias "pr-${{ github.event.pull_request.number }}" \
+            --message "PR #${{ github.event.pull_request.number }} ${{ github.sha }}" \
+            --json | jq -r '.deploy_url')
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body "Önizleme: $URL" --edit-last --create-if-none
+
+      - name: Production
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          URL=$(netlify deploy --prod --dir "$PUBLISH_DIR" --no-build \
+            --message "${{ github.sha }}" --json | jq -r '.url')
+          echo "### Yayında: $URL" >> "$GITHUB_STEP_SUMMARY"
