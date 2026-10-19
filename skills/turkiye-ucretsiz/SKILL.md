@@ -32,6 +32,8 @@ Kullanıcıya bu seçimleri sadece sorarsa anlat. Hangi skill çalışıyorsa on
 | EC2 `t3.micro` + disk + public IPv4 | Free plan kredisinden düşer (yeni hesaplar) ya da 12 aylık Free Tier'da ayda 750 saat ücretsiz (eski hesaplar). Kredi ya da süre bitince ücretli: rotalar içinde ücretsiz kalma süresi sınırlı olan tek parça |
 | Supabase | Evet, ücretsiz plan; bir hafta kullanılmayan proje durdurulur, panelden tek tıkla açılır |
 
+**Domain:** tek ücretli kalem ve isteğe bağlı (`alan-adi`). Domain olmadan `netlify.app`, `pages.dev`, `cloudfront.net` adresleri yeterli; e-posta göndermek (Resend) domain ister.
+
 **Tamamen ve süresiz ücretsiz rota:** Netlify ya da S3 + CloudFront, isteğe bağlı Supabase. EC2 rotası öğrenmek için kurulur ve iş bitince `bulut-temizlik` ile silinir.
 
 ## Ücretli bir şeyi fark etmeden açmamak

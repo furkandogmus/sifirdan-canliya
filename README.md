@@ -32,7 +32,7 @@ Başlamak için ajana "sifirdan-canliya skill'iyle başlayalım" deyin (Claude C
 | AWS S3 + CloudFront | AWS'de sunucusuz, en ucuz | `arac-kontrol` → `aws-hesap-guvenligi` → `github-cicd` → `aws-cicd-temeli` → `aws-statik-site` |
 | AWS EC2 | Sunucu öğrenmek ya da sunucuda bir şey çalıştırmak | `arac-kontrol` → `aws-hesap-guvenligi` → `github-cicd` → `aws-cicd-temeli` → `aws-ec2-site` |
 
-Ek olarak `iletisim-formu` (kodsuz form), `supabase-veritabani` (veritabanı), bitişte `bulut-temizlik`. Rotalar birleşebilir: aynı `site/` klasörü hem Netlify'a hem AWS'ye yayınlanabilir.
+Ek olarak `alan-adi` (kendi domain'in), `iletisim-formu` (e-posta gönderen form), `supabase-veritabani` (veritabanı), bitişte `bulut-temizlik`. Rotalar birleşebilir: aynı `site/` klasörü hem Netlify'a hem AWS'ye yayınlanabilir.
 
 ## Skill'ler
 
@@ -44,7 +44,8 @@ Ek olarak `iletisim-formu` (kodsuz form), `supabase-veritabani` (veritabanı), b
 | `github-cicd` | Repo, `.gitignore`, Actions secret/değişkenleri, `main` koruması, kırmızı workflow teşhisi |
 | `netlify-yayin` | Netlify + GitHub Actions: PR'da önizleme, merge'de production |
 | `cloudflare-pages` | Cloudflare Pages + GitHub Actions: aynı akış, kredi sınırı yok |
-| `iletisim-formu` | Netlify Forms ile kodsuz form; S3/EC2/Cloudflare kopyalarında da çalışır; Resend + Turnstile yolu |
+| `alan-adi` | Domain'i Cloudflare DNS'e taşır, Netlify'a ve HTTPS'e bağlar, servisler için DNS kaydı ekler |
+| `iletisim-formu` | Cloudflare Worker + Turnstile + Resend: kendi domain'inden e-posta gönderen form, Worker CI/CD'si |
 | `aws-cicd-temeli` | Terraform state bucket'ı, GitHub OIDC, plan ve deploy rolleri (bir kere) |
 | `aws-statik-site` | Private S3 + CloudFront (OAC), PR'da plan yorumu, merge'de apply + yayın |
 | `aws-ec2-site` | EC2 + nginx, içerik S3'ten, önde CloudFront, SSH yerine SSM; aynı CD akışı |
@@ -60,7 +61,7 @@ Bu repo akışı yönetir: hangi adım, hangi sırayla, nerede durulacak. Servis
 npx skills add cloudflare/skills          # Workers, Pages, wrangler, Turnstile
 npx skills add supabase/agent-skills      # Supabase CLI, auth, RLS, Postgres
 npx skills add resend/resend-skills       # E-posta gönderme, react-email
-npx @netlify/skills@latest add --all      # Netlify deploy, functions, forms
+npx @netlify/skills@latest add --all      # Netlify deploy, functions
 npx skills add vercel-labs/skills@find-skills   # ihtiyaç duyduğun yeni skill'i bul
 ```
 
@@ -68,9 +69,9 @@ npx skills add vercel-labs/skills@find-skills   # ihtiyaç duyduğun yeni skill'
 
 | Ne | Servis | Ücretsiz |
 |---|---|---|
-| İletişim formu | Netlify Forms | Gönderim sınırı yok (`iletisim-formu`) |
+| İletişim formu | Cloudflare Worker | Günde 100.000 istek (`iletisim-formu`) |
 | Spam koruması | Cloudflare Turnstile | Sınırsız doğrulama |
-| E-posta | Resend | Günde 100, ayda 3.000; kendi domain'i gerekir |
+| E-posta | Resend | Günde 100, ayda 3.000; kendi domain'i gerekir (`alan-adi`) |
 | Ziyaretçi istatistiği | Cloudflare Web Analytics | Çerezsiz, ücretsiz |
 | Site ayakta mı? | UptimeRobot | 50 monitör, 5 dakikada bir |
 | Hata izleme | Sentry Developer | 5.000 hata |
@@ -89,7 +90,7 @@ Ayarlar şablonlara sabit yazılı, seçim yapmanız gerekmez:
 | Supabase | Central EU (Frankfurt) |
 | Netlify | Ücretsiz plan kredi tabanlı: ayda 300 kredi, production deploy başına 15 |
 
-Süresiz ücretsiz rota: Netlify ya da S3 + CloudFront (+ Supabase). Ayrıntı: `turkiye-ucretsiz`.
+Süresiz ücretsiz rota: Netlify ya da S3 + CloudFront (+ Supabase). Tek ücretli kalem isteğe bağlı domain (Türkiye'de .com, ilk yıl yaklaşık 100 ₺; yenileme ücretine bakın). Ayrıntı: `turkiye-ucretsiz`.
 
 ## AWS mimarisi
 

@@ -53,7 +53,7 @@ curl -sI "https://<proje-adi>.pages.dev/" | head -1
 
 ## Netlify ile birlikte
 
-Aynı repo hem Netlify'a hem Cloudflare'e yayınlayabilir; her rota kendi workflow'unu getirir ve PR yorumları birbirini ezmez. İletişim formu Netlify Forms kullanıyorsa Cloudflare kopyası gönderimi Netlify'a yollar (`iletisim-formu` › Başka yerlerdeki kopyalar).
+Aynı repo hem Netlify'a hem Cloudflare'e yayınlayabilir; her rota kendi workflow'unu getirir ve PR yorumları birbirini ezmez. İletişim formu (`iletisim-formu`) bir Worker'a gönderdiği için her kopyada aynı çalışır; Pages adresini Worker'ın `ALLOWED_ORIGINS` listesine eklemek yeter.
 
 ## Alt sayfalar
 

@@ -21,7 +21,9 @@ Her rotanın sonu aynı: site GitHub'dan yönetilir. Değişiklik PR'la gelir, P
 
 Rotalar birleşebilir: aynı repo ve aynı `site/` klasörü hem Netlify'a hem AWS'ye yayınlanabilir; her rota kendi workflow'unu getirir.
 
-**Dinamik parça:** iletişim formu için `iletisim-formu` (Netlify Forms, kodsuz); veritabanı için `supabase-veritabani` (ziyaretçi defteri; migration'lar da CI'dan).
+**Kendi domain'i:** `alan-adi` (kayıt firmasından al, DNS Cloudflare'de, Netlify'a bağla). Tek ücretli kalem.
+
+**Dinamik parça:** iletişim formu için `iletisim-formu` (Cloudflare Worker + Turnstile + Resend; domain gerekir); veritabanı için `supabase-veritabani` (ziyaretçi defteri; migration'lar da CI'dan).
 
 **Bitiş:** iş bir demoysa `bulut-temizlik`: envanter, onay, silme.
 

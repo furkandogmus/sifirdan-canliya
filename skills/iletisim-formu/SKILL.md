@@ -1,92 +1,105 @@
 ---
 name: iletisim-formu
-description: Statik siteye sunucusuz, ücretsiz bir iletişim formu ekler - Netlify Forms (tuzak alanı ve spam filtresiyle), aynı formun S3/EC2/Cloudflare kopyalarında da çalışması, e-posta bildirimi; domain'i olanlar için Resend + Turnstile yolu. "iletişim formu", "form", "bize yaz", "mesaj gönder", "resend", "turnstile" geçtiğinde kullan.
+description: Statik siteye kendi domain'inden e-posta gönderen bir iletişim formu ekler - Cloudflare Worker (sunucusuz), Turnstile (robot koruması) ve Resend (e-posta), hepsi ücretsiz katmanda; Worker GitHub Actions ile yayınlanır. "iletişim formu", "form", "bize yaz", "mesaj gönder", "resend", "turnstile", "e-posta gönder" geçtiğinde kullan.
 ---
 
-# İletişim formu
+# İletişim formu: Worker + Turnstile + Resend
 
-Varsayılan yol **Netlify Forms**: kod yok, sunucu yok, ücretsiz planda gönderim sınırı yok, domain gerekmez. Site Netlify'da yayında olmalı (`netlify-yayin`); başka yerlerdeki kopyalar da gönderimi Netlify'a yollar.
+```
+Ziyaretçi ─form→ Cloudflare Worker ─doğrula→ Turnstile
+                        └──────────gönder→ Resend ─→ senin e-postan
+```
 
-## 1. Form algılamayı aç
+| Parça | Ücretsiz | Neden burada |
+|---|---|---|
+| Cloudflare Worker | Günde 100.000 istek | API anahtarı tarayıcıya giremez; bir sunucusuz fonksiyon gerekir |
+| Turnstile | Sınırsız doğrulama | Robot koruması, CAPTCHA'sız; token'ı Worker doğrular |
+| Resend | Günde 100, ayda 3.000 e-posta | Kendi domain'inden e-posta |
 
-Yeni Netlify sitelerinde kapalı gelir. Bir kere:
+**Ön koşul: kendi domain'in.** Resend domain doğrulanmadan sadece hesap sahibinin adresine gönderir. Domain yoksa önce `alan-adi`. Ayrıca bir Cloudflare hesabı (domain'in DNS'i zaten orada) ve bir Resend hesabı.
+
+Bu skill'in `templates/` klasöründen kopyala:
+- `worker/` → repoda `worker/`
+- `worker.yml` → `.github/workflows/worker.yml`
+- `form.html` → sitenin iletişim sayfasına (Astro, Hugo, düz HTML; içeriği aynı)
+
+## 1. Resend: domain ve anahtar
+
+Resend hesabını kullanıcı açar. API anahtarını kullanıcı oluşturur (Resend › API Keys › **Sending access**, sadece bu domain) ve değerini sana göstermez. Domain'i ve DNS kayıtlarını API ile al; Türkiye'ye en yakın bölge `eu-west-1`:
 
 ```bash
-netlify api updateSite --data '{"site_id":"<site-id>","body":{"processing_settings":{"ignore_html_forms":false}}}' \
-  | jq '.processing_settings.ignore_html_forms'      # false olmalı
+# RESEND_API_KEY kullanıcının terminalinde tanımlı olmalı; değerini yazdırma.
+curl -s -X POST https://api.resend.com/domains \
+  -H "Authorization: Bearer $RESEND_API_KEY" -H "Content-Type: application/json" \
+  -d '{"name":"send.<alanadi.com>","region":"eu-west-1"}' | jq '{id, records}'
 ```
 
-## 2. Form
-
-Statik HTML'de durmalı (JavaScript ile çizilen form algılanmaz). Astro, Hugo, düz HTML: hepsinde aynı.
-
-```html
-<form name="iletisim" method="POST" action="/tesekkurler.html"
-      data-netlify="true" netlify-honeypot="adres">
-  <input type="hidden" name="form-name" value="iletisim" />
-  <p hidden><label>Bunu doldurma: <input name="adres" tabindex="-1" autocomplete="off" /></label></p>
-  <input name="isim" required maxlength="60" />
-  <input name="eposta" type="email" maxlength="120" />
-  <textarea name="mesaj" required maxlength="2000"></textarea>
-  <button type="submit">Gönder</button>
-</form>
-```
-
-Kurallar, hepsi testte doğrulandı:
-- **`action` göreli olmalı** (`/` ile başlar). Tam adres (`https://…`) yazılırsa Netlify formu kaydetmez ve gönderimler kaybolur.
-- `name` alanları Netlify'da sütun olur; sonradan değiştirmek yeni bir alan açar.
-- `netlify-honeypot` alanını dolduran gönderim sessizce atılır: bot "200" alır ama kayıt oluşmaz.
-- `/tesekkurler.html` sayfasını da oluştur.
-
-## 3. Başka yerlerdeki kopyalar (S3, EC2, Cloudflare Pages)
-
-Aynı HTML başka bir adreste açıldığında göreli `action` o sunucuya gider ve kaybolur. Formun altına:
-
-```html
-<script>
-  const formSite = "https://<site-adi>.netlify.app";
-  if (location.origin !== formSite) {
-    document.querySelector('form[name="iletisim"]').action = formSite + "/tesekkurler.html";
-  }
-</script>
-```
-
-Netlify HTML'i göreli adresle görür ve formu kaydeder; diğer kopyalarda tarayıcı gönderimi Netlify'a yollar.
-
-## 4. Yayınla ve doğrula
-
-Değişikliği PR ile gönder (`github-cicd`), merge sonrası:
+Alt alan (`send.`) önerilir: ana domain'in e-posta itibarını korur. Dönen `records` listesindeki her kaydı (bir DKIM TXT, bir MX, bir SPF TXT) `type`, `name` ve `value` alanlarıyla **aynen** Cloudflare DNS'e ekle (`alan-adi` › DNS kaydı ekleme); `name` alt alana göre `resend._domainkey.send` gibi gelir. Hepsi **DNS only** (gri bulut). Sonra:
 
 ```bash
-netlify api listSiteForms --data '{"site_id":"<site-id>"}' | jq '.[] | {name, fields: [.fields[].name]}'
-curl -s -o /dev/null -w '%{http_code}\n' -X POST "https://<site-adi>.netlify.app/tesekkurler" \
-  -d 'form-name=iletisim&isim=Test&mesaj=deneme&adres='
-netlify api listSiteSubmissions --data '{"site_id":"<site-id>"}' | jq '.[] | {id, data}'
+curl -s -X POST "https://api.resend.com/domains/<id>/verify" -H "Authorization: Bearer $RESEND_API_KEY"
+curl -s "https://api.resend.com/domains/<id>" -H "Authorization: Bearer $RESEND_API_KEY" | jq -r .status
 ```
 
-Formun listede, test gönderiminin kayıtlarda görünmesi = bitti. Test gönderimini sil:
+`verified` olana kadar birkaç dakika bekle. Kullanıcı Resend panelinden de "Verify" diyebilir.
+
+## 2. Turnstile: site anahtarı
+
+Kullanıcı Cloudflare panelinde **Turnstile › Add widget**: alan adları olarak domain'i ve (varsa) diğer yayın adreslerini ekler, mod "Managed". İki değer çıkar:
+- **Site key**: gizli değil, `form.html`'deki `data-sitekey`.
+- **Secret key**: Worker'ın sırrı, adım 3.
+
+## 3. Worker
+
+`worker/wrangler.toml`'da:
+- `ALLOWED_ORIGINS`: sitenin yayında olduğu her adres (domain, `www`, Netlify, CloudFront, Cloudflare Pages), virgülle. Listede olmayan adresten gelen istek 403 alır.
+- `MAIL_FROM`: `Site <form@send.alanadi.com>` (Resend'de doğrulanan alan).
+- `MAIL_TO`: mesajların gideceği kutu.
+
+Sırları kullanıcı kendi terminalinde girer (değerleri sohbete yapıştırmaz):
 
 ```bash
-netlify api deleteSubmission --data '{"submission_id":"<id>"}'
+cd worker
+npx -y wrangler@4 secret put RESEND_API_KEY
+npx -y wrangler@4 secret put TURNSTILE_SECRET_KEY
 ```
 
-## 5. E-posta bildirimi
+İlk yayın lokalde: `npx -y wrangler@4 deploy`. Çıktıdaki `https://iletisim-formu.<hesap>.workers.dev` adresi `form.html`'deki `action` olur. Sonraki değişiklikleri `worker.yml` yayınlar; GitHub'da `CLOUDFLARE_API_TOKEN` (izin: **Account › Workers Scripts › Edit**) ve `CLOUDFLARE_ACCOUNT_ID` gerekir (`cloudflare-pages` › GitHub'a bağla; aynı token'a iki izin de verilebilir).
 
-Netlify'ın kendi bildirimi ücretsizdir, domain gerekmez. Kullanıcıya panelden açmasını söyle: site › **Project configuration › Notifications › Emails and webhooks › Form submission notifications › Add notification › Email notification**. Bildirim kullanıcının e-postasına gider; bu bir hesap ayarıdır, kullanıcı kendisi seçer.
+## 4. Lokal test (hesap gerekmez)
 
-## Kendi e-postanla: Resend + Turnstile
+Cloudflare'in resmî Turnstile test anahtarlarıyla Worker'ı lokalde dene. `worker/.dev.vars` (git'e girmez):
 
-Ziyaretçiye otomatik cevap ya da kendi tasarımın olan bir e-posta istenirse. Önce kullanıcıya iki şartı söyle:
+```
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+RESEND_API_KEY=re_sahte_anahtar
+```
 
-| Şart | Neden |
+```bash
+npx -y wrangler@4 dev --port 8787 &
+curl -s -X POST http://127.0.0.1:8787/ -H 'Origin: http://localhost:4321' \
+  -F isim=Test -F mesaj=deneme -F cf-turnstile-response=XXXX.DUMMY.TOKEN.XXXX
+```
+
+Beklenen: `{"hata":"E-posta gönderilemedi"}` ve Worker logunda `Resend hatası 401`. Yani istek Turnstile'dan geçip Resend'e ulaştı; sahte anahtar reddedildi. Ayrıca: köken listede yoksa 403, alan eksik ya da uzunsa 400, token yoksa 400. Formun kendisini lokalde denerken site anahtarı olarak test anahtarı `1x00000000000000000000AA` kullanılır.
+
+`.gitignore`'a `.dev.vars` ekle.
+
+## 5. Canlı doğrula
+
+Sitedeki formdan bir mesaj gönder; `MAIL_TO` kutusuna "Siteden mesaj: …" konulu e-posta gelmeli, "Yanıtla" ziyaretçinin adresine gitmeli. Gelmezse:
+
+```bash
+cd worker && npx -y wrangler@4 tail      # canlı log
+```
+
+| Log / cevap | Sebep |
 |---|---|
-| Kendi domain'i | Resend domain doğrulanmadan sadece hesap sahibinin adresine gönderir. Domain ücretlidir: "tamamen ücretsiz" kurulumun dışında kalır |
-| Bir fonksiyon | Resend API anahtarı ve Turnstile doğrulaması tarayıcıda yapılamaz |
-
-Akış: form → Cloudflare Worker ya da Supabase Edge Function (ikisi de ücretsiz) → Turnstile token'ını `https://challenges.cloudflare.com/turnstile/v0/siteverify` ile doğrula → Resend API ile gönder. Ücretsiz limitler: Resend günde 100, ayda 3.000 e-posta; Turnstile sınırsız doğrulama.
-
-Ayrıntı için resmî skill'ler: `npx skills add resend/resend-skills` ve `npx skills add cloudflare/skills` (Turnstile ve Workers). Anahtarlar `gh secret set` / `wrangler secret put` ile girilir, koda yazılmaz.
+| 403 "Bu adresten gönderilemez" | Sitenin adresi `ALLOWED_ORIGINS`'te yok |
+| 400 "Robot doğrulaması başarısız" | Turnstile widget'ında bu alan adı ekli değil ya da sır yanlış |
+| `Resend hatası 403` | Domain doğrulanmadı ya da `MAIL_FROM` doğrulanan alanda değil |
+| `Resend hatası 401` | API anahtarı yanlış ya da silinmiş |
 
 ## Kullanıcıya teslim
 
-Form adresi, gönderimlerin nerede görüleceği (Netlify › Forms ya da `listSiteSubmissions`), bildirimin nasıl açılacağı.
+Formun adresi, Worker adresi, mesajların gideceği kutu, Resend ve Turnstile panellerinin linkleri, sırların nasıl yenileneceği (`wrangler secret put`).
